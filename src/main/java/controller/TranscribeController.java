@@ -49,6 +49,7 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
                 .subtitles(Subtitles.builder()
                         .formats(SubtitleFormat.SRT, SubtitleFormat.VTT)
                         .build())
+                .identifyMultipleLanguages(true)
                 .build();
 
         TranscribeClient transcribeClient = TranscribeClient.builder().build();
