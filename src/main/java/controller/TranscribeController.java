@@ -33,7 +33,7 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
         StartTranscriptionJobRequest request = StartTranscriptionJobRequest.builder()
                 .transcriptionJobName(jobName)
                 .mediaFormat("mp4")
-                .languageCode(LanguageCode.ZH_TW)
+                //.languageCode(LanguageCode.ZH_TW)
                 .languageOptions(LanguageCode.ZH_TW, LanguageCode.EN_US)
                 .outputBucketName(srcBucket)
                 .outputKey(srcKey + ".json")
