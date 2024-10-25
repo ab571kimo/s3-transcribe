@@ -1,12 +1,16 @@
 package controller;
 
+import Model.TranscribeParam;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3EventNotificationRecord;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import software.amazon.awssdk.services.transcribe.TranscribeClient;
 import software.amazon.awssdk.services.transcribe.model.*;
+import utils.SecretsManagerUtils;
 
 import java.util.UUID;
 
@@ -30,26 +34,37 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
 
         String jobName = UUID.randomUUID().toString();
 
+        SecretsManagerUtils secretsManagerUtils = new SecretsManagerUtils();
+        String secret = secretsManagerUtils.getSecret();
+        logger.log("SECRET: " + secret);
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        TranscribeParam transcribeParam = gson.fromJson(secret, TranscribeParam.class);
+
         StartTranscriptionJobRequest request = StartTranscriptionJobRequest.builder()
                 .transcriptionJobName(jobName)
-                .mediaFormat("mp4")
-                //.languageCode(LanguageCode.ZH_TW)
-                .languageOptions(LanguageCode.ZH_TW, LanguageCode.EN_US)
-                .outputBucketName(srcBucket)
-                .outputKey(srcKey + ".json")
+
                 .settings(Settings.builder()
-                        .showSpeakerLabels(true)
-                        .maxSpeakerLabels(10)
-                        .channelIdentification(false)
-                        .showAlternatives(false)
+                        .showSpeakerLabels(transcribeParam.isShowSpeakerLabels())
+                        .maxSpeakerLabels(transcribeParam.getMaxSpeakerLabels())
+                        .channelIdentification(transcribeParam.isChannelIdentification())
+                        .showAlternatives(transcribeParam.isShowAlternatives())
                         .build())
+
+                .mediaFormat("mp4")
                 .media(Media.builder()
                         .mediaFileUri(fileUrl)
                         .build())
+
                 .subtitles(Subtitles.builder()
                         .formats(SubtitleFormat.SRT, SubtitleFormat.VTT)
                         .build())
+
                 .identifyMultipleLanguages(true)
+                .languageOptions(LanguageCode.ZH_TW, LanguageCode.EN_US)
+
+                .outputBucketName(srcBucket)
+                .outputKey(srcKey + ".json")
                 .build();
 
         TranscribeClient transcribeClient = TranscribeClient.builder().build();
