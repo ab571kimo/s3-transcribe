@@ -13,4 +13,6 @@ public class TranscribeParam {
 
     private boolean showAlternatives;
 
+    private String sinkBucket;
+
 }

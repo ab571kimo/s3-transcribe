@@ -1,15 +1,15 @@
 package controller;
 
+import model.S3EventParam;
 import model.TranscribeParam;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
-import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3EventNotificationRecord;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.transcribe.TranscribeClient;
 import software.amazon.awssdk.services.transcribe.model.*;
+import utils.S3EventUtils;
 import utils.SecretsManagerUtils;
 
 import java.util.UUID;
@@ -19,27 +19,27 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
     @Override
     public String handleRequest(S3Event event, Context context) {
 
-        S3EventNotificationRecord record = event.getRecords().getFirst();
-        String srcBucket = record.getS3().getBucket().getName();
-        String srcKey = record.getS3().getObject().getUrlDecodedKey();
-        String region = record.getAwsRegion();
-        String fileUrl = "s3://" + srcBucket + "/" + srcKey;
-
         LambdaLogger logger = context.getLogger();
-        logger.log("RECORD: " + record);
-        logger.log("SOURCE BUCKET: " + srcBucket);
-        logger.log("SOURCE KEY: " + srcKey);
-        logger.log("S3 Region: " + region);
-        logger.log("FILE URL: " + fileUrl);
+
+        //取得觸發S3物件參數
+        S3EventUtils s3EventUtils = new S3EventUtils();
+        S3EventParam S3EventParam = s3EventUtils.getS3EventParam(event, context);
+        String srcBucket = S3EventParam.getSrcBucket();
+        String srcKey = S3EventParam.getSrcKey();
+        String fileUrl = S3EventParam.getFileUrl();
+
+        String[] srcKeys = srcKey.split("/");
+        String path0 = srcKeys[0];
+        logger.log("path0 : " + path0);
+        String filename = srcKeys[1].split("\\.")[0];
+        logger.log("filename : " + filename);
+
+        //取得secretsManager參數
+        SecretsManagerUtils secretsManagerUtils = new SecretsManagerUtils();
+        TranscribeParam transcribeParam = secretsManagerUtils.getSecret("transcribe/parameter", Region.US_EAST_1, TranscribeParam.class);
+
 
         String jobName = UUID.randomUUID().toString();
-
-        SecretsManagerUtils secretsManagerUtils = new SecretsManagerUtils();
-        String secret = secretsManagerUtils.getSecret();
-        logger.log("SECRET: " + secret);
-
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        TranscribeParam transcribeParam = gson.fromJson(secret, TranscribeParam.class);
 
         StartTranscriptionJobRequest request = StartTranscriptionJobRequest.builder()
                 .transcriptionJobName(jobName)
@@ -63,8 +63,8 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
                 .identifyMultipleLanguages(true)
                 .languageOptions(LanguageCode.ZH_TW, LanguageCode.EN_US)
 
-                .outputBucketName(srcBucket)
-                .outputKey(srcKey + ".json")
+                .outputBucketName(transcribeParam.getSinkBucket())
+                .outputKey(path0 + "/" + filename + ".json")
                 .build();
 
         TranscribeClient transcribeClient = TranscribeClient.builder().build();

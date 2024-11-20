@@ -1,5 +1,8 @@
 package utils;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import model.TranscribeParam;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
@@ -7,10 +10,7 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 
 public class SecretsManagerUtils {
 
-    public String getSecret() {
-
-        String secretName = "transcribe/parameter";
-        Region region = Region.of("us-east-1");
+    public <T> T getSecret(String secretName, Region region, Class<T> clazz) {
 
         // Create a Secrets Manager client
         SecretsManagerClient client = SecretsManagerClient.builder()
@@ -25,7 +25,9 @@ public class SecretsManagerUtils {
 
         getSecretValueResponse.getValueForField("showSpeakerLabels",Boolean.class);
 
-        return getSecretValueResponse.secretString();
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+        return gson.fromJson(getSecretValueResponse.secretString(), clazz);
 
     }
 }
