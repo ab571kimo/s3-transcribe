@@ -15,4 +15,6 @@ public class TranscribeParam {
 
     private String sinkBucket;
 
+    private String mediaFormat;
+
 }

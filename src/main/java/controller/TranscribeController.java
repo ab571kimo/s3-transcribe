@@ -31,7 +31,7 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
         String[] srcKeys = srcKey.split("/");
         String path0 = srcKeys[0];
         logger.log("path0 : " + path0);
-        String filename = srcKeys[1].split("\\.")[0];
+        String filename = srcKeys[2].split("\\.")[0];
         logger.log("filename : " + filename);
 
         //取得secretsManager參數
@@ -51,7 +51,7 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
                         .showAlternatives(transcribeParam.isShowAlternatives())
                         .build())
 
-                .mediaFormat("mp4")
+                .mediaFormat(transcribeParam.getMediaFormat())
                 .media(Media.builder()
                         .mediaFileUri(fileUrl)
                         .build())
