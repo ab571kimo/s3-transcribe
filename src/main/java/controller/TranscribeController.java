@@ -38,6 +38,10 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
         SecretsManagerUtils secretsManagerUtils = new SecretsManagerUtils();
         TranscribeParam transcribeParam = secretsManagerUtils.getSecret("transcribe/parameter", Region.US_EAST_1, TranscribeParam.class);
 
+        String putBucket = transcribeParam.getSinkBucket();
+        logger.log("putBucket : " + putBucket);
+        String putKey = path0 + "/json/" + filename + ".json";
+        logger.log("putKey : " + putKey);
 
         String jobName = UUID.randomUUID().toString();
 
@@ -63,8 +67,8 @@ public class TranscribeController implements RequestHandler<S3Event, String> {
                 .identifyMultipleLanguages(true)
                 .languageOptions(LanguageCode.ZH_TW, LanguageCode.EN_US)
 
-                .outputBucketName(transcribeParam.getSinkBucket())
-                .outputKey(path0 + "/" + filename + ".json")
+                .outputBucketName(putBucket)
+                .outputKey(putKey)
                 .build();
 
         TranscribeClient transcribeClient = TranscribeClient.builder().build();
